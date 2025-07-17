@@ -456,7 +456,7 @@ impl TaskwarriorTui {
   }
 
   fn draw_tabs(&self, f: &mut Frame, layout: Rect) {
-    let titles: Vec<&str> = vec!["Tasks", "Projects", "Calendar"];
+    let titles: Vec<&str> = vec!["Tasks", "Projects"];
     let tab_names: Vec<_> = titles.into_iter().map(Line::from).collect();
     let selected_tab = match self.mode {
       Mode::Tasks(_) => 0,
@@ -2886,7 +2886,7 @@ impl TaskwarriorTui {
             self.mode = Mode::Tasks(Action::ContextMenu);
           } else if input == self.keyconfig.previous_tab {
             if self.config.uda_change_focus_rotate {
-              self.mode = Mode::Calendar;
+              self.mode = Mode::Projects;
             }
           } else if input == self.keyconfig.next_tab {
             self.mode = Mode::Projects;

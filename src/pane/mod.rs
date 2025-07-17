@@ -17,7 +17,7 @@ pub trait Pane {
     match app.mode {
       Mode::Tasks(_) => {
         if app.config.uda_change_focus_rotate {
-          app.mode = Mode::Calendar;
+          app.mode = Mode::Projects;
         }
       }
       Mode::Projects => app.mode = Mode::Tasks(Action::Report),
@@ -29,7 +29,7 @@ pub trait Pane {
   fn change_focus_to_right_pane(app: &mut TaskwarriorTui) {
     match app.mode {
       Mode::Tasks(_) => app.mode = Mode::Projects,
-      Mode::Projects => app.mode = Mode::Calendar,
+      Mode::Projects => app.mode = Mode::Tasks(Action::Report),
       Mode::Calendar => {
         if app.config.uda_change_focus_rotate {
           app.mode = Mode::Tasks(Action::Report);
