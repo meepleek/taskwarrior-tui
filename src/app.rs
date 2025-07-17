@@ -2589,7 +2589,7 @@ impl TaskwarriorTui {
             self.task_details_scroll_down();
           } else if input == KeyCode::Ctrl('y') {
             self.task_details_scroll_up();
-          } else if input == self.keyconfig.done {
+          } else if input == self.keyconfig.done || input == KeyCode::Char('\n') {
             if self.config.uda_task_report_prompt_on_done {
               self.mode = Mode::Tasks(Action::DonePrompt);
               if self.task_current().is_none() {
@@ -2627,7 +2627,7 @@ impl TaskwarriorTui {
                 self.mode = Mode::Tasks(Action::Error);
               }
             }
-          } else if input == self.keyconfig.quick_tag {
+          } else if input == self.keyconfig.quick_tag || input == KeyCode::Char(' ') {
             match self.task_quick_tag() {
               Ok(_) => self.update(true).await?,
               Err(e) => {
@@ -2635,7 +2635,7 @@ impl TaskwarriorTui {
                 self.mode = Mode::Tasks(Action::Error);
               }
             }
-          } else if input == self.keyconfig.edit {
+          } else if input == self.keyconfig.edit || input == KeyCode::Char('E') {
             match self.task_edit().await {
               Ok(_) => self.update(true).await?,
               Err(e) => {
