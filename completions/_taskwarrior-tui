@@ -21,8 +21,8 @@ _taskwarrior-tui() {
 '--config=[Sets the config folder for taskwarrior-tui (currently not used)]:FOLDER: ' \
 '--taskdata=[Sets the .task folder using the TASKDATA environment variable for taskwarrior]:FOLDER: ' \
 '--taskrc=[Sets the .taskrc file using the TASKRC environment variable for taskwarrior]:FILE: ' \
-'-r+[Sets default report]:STRING: ' \
-'--report=[Sets default report]:STRING: ' \
+'-f+[Sets default filter]:STRING: ' \
+'--filter=[Sets default filter]:STRING: ' \
 '-h[Print help]' \
 '--help[Print help]' \
 '-V[Print version]' \

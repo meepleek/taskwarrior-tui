@@ -39,11 +39,11 @@ pub fn generate_cli_app() -> clap::Command {
         .action(clap::ArgAction::Set),
     )
     .arg(
-      Arg::new("report")
-        .short('r')
-        .long("report")
+      Arg::new("filter")
+        .short('f')
+        .long("filter")
         .value_name("STRING")
-        .help("Sets default report")
+        .help("Sets default filter")
         .action(clap::ArgAction::Set),
     );
 

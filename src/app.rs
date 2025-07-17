@@ -43,8 +43,7 @@ use crate::{
   action::Action,
   calendar::Calendar,
   completion::{get_start_word_under_cursor, CompletionList},
-  config,
-  config::Config,
+  config::{self, Config, InitialFilter},
   event::{Event, KeyCode},
   help::Help,
   history::HistoryContext,
@@ -210,7 +209,7 @@ pub struct TaskwarriorTui {
 }
 
 impl TaskwarriorTui {
-  pub async fn new(report: &str, init_event_loop: bool) -> Result<Self> {
+  pub async fn new(initial_filter: InitialFilter, init_event_loop: bool) -> Result<Self> {
     let output = std::process::Command::new("task")
       .arg("rc.color=off")
       .arg("rc._forcecolor=off")
@@ -232,7 +231,7 @@ impl TaskwarriorTui {
     }
 
     let data = String::from_utf8_lossy(&output.stdout);
-    let c = Config::new(&data, report)?;
+    let c = Config::new(&data, initial_filter)?;
     let kc = KeyConfig::new(&data)?;
 
     let output = std::process::Command::new("task")
@@ -273,7 +272,7 @@ impl TaskwarriorTui {
       task_details_scroll: 0,
       task_report_show_info: c.uda_task_report_show_info,
       config: c,
-      task_report_table: TaskReportTable::new(&data, report)?,
+      task_report_table: TaskReportTable::new(&data, "next")?,
       calendar_year: Local::now().year(),
       help_popup: Help::new(),
       last_export: None,
@@ -285,7 +284,7 @@ impl TaskwarriorTui {
       history_status: None,
       completion_list: CompletionList::with_items(vec![]),
       show_completion_pane: false,
-      report: report.to_string(),
+      report: "next".to_string(),
       projects: ProjectsState::new(),
       contexts: ContextsState::new(),
       task_version,
@@ -3881,7 +3880,7 @@ mod tests {
   }
 
   async fn test_taskwarrior_tui_history() {
-    let mut app = TaskwarriorTui::new("next", false).await.unwrap();
+    let mut app = TaskwarriorTui::new(InitialFilter::Report("next".to_string()), false).await.unwrap();
     // setup();
     app.mode = Mode::Tasks(Action::Add);
     app.update_completion_list();
@@ -3958,7 +3957,7 @@ mod tests {
 
   #[tokio::test]
   async fn test_taskwarrior_tui() {
-    let app = TaskwarriorTui::new("next", false).await.unwrap();
+    let app = TaskwarriorTui::new(InitialFilter::Report("next".to_string()), false).await.unwrap();
 
     assert!(
       app.task_by_index(0).is_none(),
@@ -3968,7 +3967,7 @@ mod tests {
       get_taskdata_path().parent().unwrap().join(".config")
     );
 
-    let app = TaskwarriorTui::new("next", false).await.unwrap();
+    let app = TaskwarriorTui::new(InitialFilter::Report("next".to_string()), false).await.unwrap();
     assert!(app
       .task_by_uuid(Uuid::parse_str("3f43831b-88dc-45e2-bf0d-4aea6db634cc").unwrap())
       .is_none());
@@ -3980,10 +3979,10 @@ mod tests {
 
     setup();
 
-    let app = TaskwarriorTui::new("next", false).await.unwrap();
+    let app = TaskwarriorTui::new(InitialFilter::Report("next".to_string()), false).await.unwrap();
     assert!(app.task_by_index(0).is_some());
 
-    let app = TaskwarriorTui::new("next", false).await.unwrap();
+    let app = TaskwarriorTui::new(InitialFilter::Report("next".to_string()), false).await.unwrap();
     assert!(app
       .task_by_uuid(Uuid::parse_str("3f43831b-88dc-45e2-bf0d-4aea6db634cc").unwrap())
       .is_some());
@@ -4003,7 +4002,7 @@ mod tests {
 
   async fn test_task_tags() {
     // testing tags
-    let app = TaskwarriorTui::new("next", false).await.unwrap();
+    let app = TaskwarriorTui::new(InitialFilter::Report("next".to_string()), false).await.unwrap();
     let task = app.task_by_id(1).unwrap();
 
     let tags = vec!["PENDING".to_string(), "PRIORITY".to_string()];
@@ -4012,7 +4011,7 @@ mod tests {
       assert!(task.tags().unwrap().contains(&tag));
     }
 
-    let mut app = TaskwarriorTui::new("next", false).await.unwrap();
+    let mut app = TaskwarriorTui::new(InitialFilter::Report("next".to_string()), false).await.unwrap();
     let task = app.task_by_id(11).unwrap();
     let tags = ["finance", "UNBLOCKED", "PENDING", "TAGGED", "UDA"]
       .iter()
@@ -4055,7 +4054,7 @@ mod tests {
   }
 
   async fn test_task_style() {
-    let app = TaskwarriorTui::new("next", false).await.unwrap();
+    let app = TaskwarriorTui::new(InitialFilter::Report("next".to_string()), false).await.unwrap();
     let task = app.task_by_id(1).unwrap();
     for r in vec![
       "active",
@@ -4085,7 +4084,7 @@ mod tests {
   }
 
   async fn test_task_context() {
-    let mut app = TaskwarriorTui::new("next", false).await.unwrap();
+    let mut app = TaskwarriorTui::new(InitialFilter::Report("next".to_string()), false).await.unwrap();
 
     assert!(app.update(true).await.is_ok());
 
@@ -4120,7 +4119,7 @@ mod tests {
   async fn test_task_tomorrow() {
     let total_tasks: u64 = 26;
 
-    let mut app = TaskwarriorTui::new("next", false).await.unwrap();
+    let mut app = TaskwarriorTui::new(InitialFilter::Report("next".to_string()), false).await.unwrap();
     assert!(app.update(true).await.is_ok());
     assert_eq!(app.tasks.len(), total_tasks as usize);
     assert_eq!(app.current_context_filter, "");
@@ -4169,7 +4168,7 @@ mod tests {
       .output()
       .unwrap();
 
-    let mut app = TaskwarriorTui::new("next", false).await.unwrap();
+    let mut app = TaskwarriorTui::new(InitialFilter::Report("next".to_string()), false).await.unwrap();
     assert!(app.update(true).await.is_ok());
     assert_eq!(app.tasks.len(), total_tasks as usize);
     assert_eq!(app.current_context_filter, "");
@@ -4178,7 +4177,7 @@ mod tests {
   async fn test_task_earlier_today() {
     let total_tasks: u64 = 26;
 
-    let mut app = TaskwarriorTui::new("next", false).await.unwrap();
+    let mut app = TaskwarriorTui::new(InitialFilter::Report("next".to_string()), false).await.unwrap();
     assert!(app.update(true).await.is_ok());
     assert_eq!(app.tasks.len(), total_tasks as usize);
     assert_eq!(app.current_context_filter, "");
@@ -4228,7 +4227,7 @@ mod tests {
       .output()
       .unwrap();
 
-    let mut app = TaskwarriorTui::new("next", false).await.unwrap();
+    let mut app = TaskwarriorTui::new(InitialFilter::Report("next".to_string()), false).await.unwrap();
     assert!(app.update(true).await.is_ok());
     assert_eq!(app.tasks.len(), total_tasks as usize);
     assert_eq!(app.current_context_filter, "");
@@ -4237,7 +4236,7 @@ mod tests {
   async fn test_task_later_today() {
     let total_tasks: u64 = 26;
 
-    let mut app = TaskwarriorTui::new("next", false).await.unwrap();
+    let mut app = TaskwarriorTui::new(InitialFilter::Report("next".to_string()), false).await.unwrap();
     assert!(app.update(true).await.is_ok());
     assert_eq!(app.tasks.len(), total_tasks as usize);
     assert_eq!(app.current_context_filter, "");
@@ -4284,7 +4283,7 @@ mod tests {
       .output()
       .unwrap();
 
-    let mut app = TaskwarriorTui::new("next", false).await.unwrap();
+    let mut app = TaskwarriorTui::new(InitialFilter::Report("next".to_string()), false).await.unwrap();
     assert!(app.update(true).await.is_ok());
     assert_eq!(app.tasks.len(), total_tasks as usize);
     assert_eq!(app.current_context_filter, "");
@@ -4324,7 +4323,7 @@ mod tests {
       expected.get_mut(i, 13).set_style(Style::default().add_modifier(Modifier::REVERSED));
     }
 
-    let mut app = TaskwarriorTui::new("next", false).await.unwrap();
+    let mut app = TaskwarriorTui::new(InitialFilter::Report("next".to_string()), false).await.unwrap();
 
     app.task_report_next();
     app.context_next();
@@ -4376,7 +4375,7 @@ mod tests {
       expected2.get_mut(i, 0).set_style(Style::default().add_modifier(Modifier::REVERSED));
     }
 
-    let mut app = TaskwarriorTui::new("next", false).await.unwrap();
+    let mut app = TaskwarriorTui::new(InitialFilter::Report("next".to_string()), false).await.unwrap();
 
     let total_tasks: u64 = 26;
 
@@ -4566,7 +4565,7 @@ mod tests {
         .set_style(Style::default().fg(Color::Indexed(1)).bg(Color::Indexed(4)));
     }
 
-    let mut app = TaskwarriorTui::new("next", false).await.unwrap();
+    let mut app = TaskwarriorTui::new(InitialFilter::Report("next".to_string()), false).await.unwrap();
 
     app.task_report_next();
     app.context_next();
@@ -4706,7 +4705,7 @@ mod tests {
         .set_style(Style::default().bg(Color::Reset).add_modifier(Modifier::UNDERLINED));
     }
 
-    let mut app = TaskwarriorTui::new("next", false).await.unwrap();
+    let mut app = TaskwarriorTui::new(InitialFilter::Report("next".to_string()), false).await.unwrap();
 
     app.task_report_next();
     app.context_next();
@@ -4754,7 +4753,7 @@ mod tests {
     expected.get_mut(4, 11).set_style(Style::default().fg(Color::Gray));
     expected.get_mut(5, 11).set_style(Style::default().fg(Color::Gray));
 
-    let mut app = TaskwarriorTui::new("next", false).await.unwrap();
+    let mut app = TaskwarriorTui::new(InitialFilter::Report("next".to_string()), false).await.unwrap();
 
     app.mode = Mode::Tasks(Action::HelpPopup);
     app.task_report_next();
@@ -4813,7 +4812,7 @@ mod tests {
       expected.get_mut(i, 3).set_style(Style::default().add_modifier(Modifier::BOLD));
     }
 
-    let mut app = TaskwarriorTui::new("next", false).await.unwrap();
+    let mut app = TaskwarriorTui::new(InitialFilter::Report("next".to_string()), false).await.unwrap();
 
     app.mode = Mode::Tasks(Action::ContextMenu);
     app.task_report_next();
@@ -4838,7 +4837,7 @@ mod tests {
     dbg!(UnicodeWidthStr::width("写作业"));
     dbg!(UnicodeWidthStr::width("abc"));
 
-    let mut app = TaskwarriorTui::new("next", false).await.unwrap();
+    let mut app = TaskwarriorTui::new(InitialFilter::Report("next".to_string()), false).await.unwrap();
 
     if let Some(task) = app.task_by_id(27) {
       let i = app.task_index_by_uuid(*task.uuid()).unwrap_or_default();
@@ -4867,7 +4866,7 @@ mod tests {
 
   // #[test]
   async fn test_taskwarrior_tui_completion() {
-    let mut app = TaskwarriorTui::new("next", false).await.unwrap();
+    let mut app = TaskwarriorTui::new(InitialFilter::Report("next".to_string()), false).await.unwrap();
     app.handle_input(KeyCode::Char('z')).await.unwrap();
     app.mode = Mode::Tasks(Action::Add);
     app.update_completion_list();

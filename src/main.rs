@@ -31,6 +31,7 @@ use std::{
 
 use anyhow::Result;
 use app::{Mode, TaskwarriorTui};
+use config::InitialFilter;
 use crossterm::{
   cursor,
   event::{DisableMouseCapture, EnableMouseCapture, EventStream},
@@ -104,13 +105,13 @@ pub fn absolute_path(path: impl AsRef<Path>) -> io::Result<PathBuf> {
   Ok(absolute_path)
 }
 
-async fn tui_main(report: &str) -> Result<()> {
+async fn tui_main(filter: &str) -> Result<()> {
   panic::set_hook(Box::new(|panic_info| {
     destruct_terminal();
     better_panic::Settings::auto().create_panic_handler()(panic_info);
   }));
 
-  let mut app = app::TaskwarriorTui::new(report, true).await?;
+  let mut app = app::TaskwarriorTui::new(InitialFilter::Filter(filter.to_string()), true).await?;
 
   let mut terminal = app.start_tui()?;
 
@@ -131,7 +132,7 @@ fn main() -> Result<()> {
   let taskrc = matches.get_one::<String>("taskrc");
   let taskdata = matches.get_one::<String>("taskdata");
   let binding = String::from("next");
-  let report = matches.get_one::<String>("report").unwrap_or(&binding);
+  let filter = matches.get_one::<String>("filter").unwrap_or(&binding);
 
   if let Some(e) = config {
     if env::var("TASKWARRIOR_TUI_CONFIG").is_err() {
@@ -178,13 +179,13 @@ fn main() -> Result<()> {
   initialize_logging();
 
   debug!("getting matches from clap...");
-  debug!("report = {:?}", &report);
+  debug!("filter = {:?}", &filter);
   debug!("config = {:?}", &config);
 
   let r = tokio::runtime::Builder::new_multi_thread()
     .enable_all()
     .build()?
-    .block_on(async { tui_main(report).await });
+    .block_on(async { tui_main(filter).await });
   if let Err(err) = r {
     eprintln!("\x1b[0;31m[taskwarrior-tui error]\x1b[0m: {}\n\nIf you need additional help, please report as a github issue on https://github.com/kdheepak/taskwarrior-tui", err);
     std::process::exit(1);

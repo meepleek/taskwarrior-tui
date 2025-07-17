@@ -102,8 +102,13 @@ pub struct Config {
   pub uda: Vec<Uda>,
 }
 
+pub(crate) enum InitialFilter {
+  Report(String),
+  Filter(String),
+}
+
 impl Config {
-  pub fn new(data: &str, report: &str) -> Result<Self> {
+  pub fn new(data: &str, report: InitialFilter) -> Result<Self> {
     let bool_collection = Self::get_bool_collection();
 
     let enabled = true;
@@ -483,13 +488,18 @@ impl Config {
     data.split(',').map(ToString::to_string).collect::<Vec<_>>()
   }
 
-  fn get_filter(data: &str, report: &str) -> Result<String> {
-    if report == "all" {
-      Ok("".into())
-    } else if let Some(s) = Self::get_config(format!("uda.taskwarrior-tui.task-report.{}.filter", report).as_str(), data) {
-      Ok(s)
-    } else {
-      Ok(Self::get_config(format!("report.{}.filter", report).as_str(), data).unwrap_or_default())
+  fn get_filter(data: &str, initial_filter: InitialFilter) -> Result<String> {
+    match initial_filter {
+      InitialFilter::Report(report) => {
+        if report == "all" {
+          Ok("".into())
+        } else if let Some(s) = Self::get_config(format!("uda.taskwarrior-tui.task-report.{}.filter", report).as_str(), data) {
+          Ok(s)
+        } else {
+          Ok(Self::get_config(format!("report.{}.filter", report).as_str(), data).unwrap_or_default())
+        }
+      }
+      InitialFilter::Filter(filter) => Ok(filter),
     }
   }
 
